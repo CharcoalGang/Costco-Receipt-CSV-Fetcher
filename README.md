@@ -28,6 +28,15 @@ By default, the script pulls receipts starting from **January 1, 2023**. To chan
 2. Find the line: `var startDateStr = '01/01/2023';`
 3. Update the date using the `MM/DD/YYYY` format.
 
-## Troubleshooting
-* **Pop-up Blockers:** If the download does not start immediately, check your address bar for a "Pop-up blocked" icon and allow it.
-* **400 Bad Request:** If you see network errors, ensure you are using the version of the script that requests the standard `itemArray` rather than extended fields (like specific department IDs) which are restricted by the Costco API.
+## Credits & Attribution
+This script is a mix of existing tools and AI generation. I am not a programmer, but I used **Google Gemini** to merge different codebases into this working solution.
+
+* **Original Logic:** The fetching logic is based on the work by [Ankur Dave](https://github.com/ankurdave/beancount_import_sources/blob/main/download/download_costco_receipts.js).
+* **Code Refinement:** Updated and merged with detailed CSV processing logic using Gemini.
+
+## Disclaimer & Maintenance
+**Please Note:** I have no programming knowledge. This repository was created simply to share a solution that worked for me at the time.
+
+* **This project will not be actively maintained.**
+* If Costco changes their website structure or API, this script may stop working.
+* I cannot provide technical support, bug fixes, or feature updates.
