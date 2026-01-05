@@ -42,7 +42,22 @@ Includes 6 dedicated columns for financial analysis:
 ### Changing Default Dates
 The script is interactive and will ask you for dates every time you run it. However, if you want to change the **pre-filled default dates** (so you don't have to type them every time):
 
+
+
 1. Scroll to the bottom of the script to the `downloadFullCsv` function.
 2. Find the lines:
    ```javascript
    var defaultStart = '01/01/2023';
+
+## Credits & Attribution
+This script is a mix of existing tools and AI generation. I am not a programmer, but I used **Google Gemini** to merge different codebases into this working solution.
+
+* **Original Logic:** The fetching logic is based on the work by Ankur Dave.
+* **Code Refinement:** Updated and merged with detailed CSV processing, Gas Station support, and FX logic using Gemini.
+
+## Disclaimer & Maintenance
+**Please Note:** I have no programming knowledge. This repository was created simply to share a solution that worked for me at the time.
+
+* **This project will not be actively maintained.**
+* If Costco changes their website structure or API, this script may stop working.
+* I cannot provide technical support, bug fixes, or feature updates.
