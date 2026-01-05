@@ -33,7 +33,7 @@ Includes 6 dedicated columns for financial analysis:
    * **Mac:** Press `Command + Option + J` (Chrome) or `Command + Option + C` (Safari).
 4. **Enable Pasting:** Attempt to paste the code. If your browser blocks it and shows a warning (e.g., "Warning: Don't paste code..."), type `allow pasting` and press **Enter**.
    * *Note:* This is a standard browser security feature.
-5. **Run:** Copy the entire script [In File-For-Console], paste it into the console, and press **Enter**.
+5. **Run:** Copy the entire script in **`File-For-Console`**, paste it into the console, and press **Enter**.
 6. **Select Dates:** A popup window will appear asking for your **Start Date** and **End Date**. Enter them in `MM/DD/YYYY` format.
 7. **Download:** The script will fetch your history (Warehouse + Gas) and automatically trigger a `.csv` download.
 
