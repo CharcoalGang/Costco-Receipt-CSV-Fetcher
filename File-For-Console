@@ -1,5 +1,5 @@
 // ==========================================
-// PART 1: THE FETCHER (Combined Query)
+// PART 1: THE FETCHER
 // ==========================================
 async function listReceipts(startDate, endDate) {
     return await new Promise(function (resolve, reject) {
@@ -74,7 +74,7 @@ async function listReceipts(startDate, endDate) {
 }
 
 // ==========================================
-// PART 2: THE PROCESSOR (Updated Gas Logic)
+// PART 2: THE PROCESSOR (Updated Formatting)
 // ==========================================
 class CostcoReceiptConverter {
   constructor() {
@@ -85,7 +85,8 @@ class CostcoReceiptConverter {
       'tax_flag', 'isFSAEligible', 'subtotal', 'instant_savings', 'discount_amount', 
       'shop_card_applied', 'coupon_applied', 'tax_total', 'shipping_handling', 
       'delivery_fees', 'surcharges', 'surcharge_reason', 'final_total', 
-      'payment_methods', 'raw_receipt_hash'
+      'payment_methods', 'raw_receipt_hash',
+      'FX Month', 'FX Year', 'FX Credit / Debit', 'FX Description', 'FX Show', 'FX Total With Savings'
     ];
   }
 
@@ -166,12 +167,17 @@ class CostcoReceiptConverter {
 
       const warehouseInfo = this.formatWarehouseInfo(receipt.warehouseNumber, receipt.warehouseName);
       
-      // 1. Check for Gas at Receipt Level
+      // Receipt Level Gas Check
       let isGasReceipt = false;
       let warehouseNameLower = (receipt.warehouseName || "").toLowerCase();
       if (receipt.documentType === "Gas Station" || warehouseNameLower.includes("gas") || warehouseNameLower.includes("fuel")) {
           isGasReceipt = true;
       }
+
+      // PREPARE DATE FOR FX LOGIC
+      let transDateObj = new Date(receipt.transactionDateTime || receipt.transactionDate);
+      let fx_month_val = transDateObj.toLocaleString('en-US', { month: 'short' }); 
+      let fx_year_val = transDateObj.getFullYear(); 
 
       const processedRows = [];
 
@@ -185,22 +191,26 @@ class CostcoReceiptConverter {
           return;
         }
 
-        // 2. Check for Gas at Item Level (Overrules receipt level)
+        // Item Level Gas Check
         let rowIsGas = isGasReceipt;
         let itemName = item.itemDescription01 || "";
-        
-        // If item name says "Regular Gas" or "Premium Gas", treat as Gas Station
         if (itemName.toLowerCase().includes("regular gas") || itemName.toLowerCase().includes("premium gas")) {
             rowIsGas = true;
         }
 
         const finalQuantity = item.unit || 1;
         const finalDesc = itemName || (rowIsGas ? 'FUEL' : '');
+        const lineTotal = item.amount || 0;
+
+        // FX LOGIC IMPLEMENTATION
+        let fx_cd = (lineTotal <= 0) ? "Credit" : "Debit";
+        let fx_desc_val = finalDesc ? finalDesc : (item.itemDescription02 || "");
+        let fx_show_val = (lineTotal !== 0) ? "YES" : "No";
 
         const row = {
           order_number: receipt.transactionBarcode || receipt.transactionNumber,
           receipt_id: receipt.transactionNumber,
-          receipt_type: rowIsGas ? 'gas_station' : 'warehouse', // Use the row-specific flag
+          receipt_type: rowIsGas ? 'gas_station' : 'warehouse',
           transaction_date: this.formatDate(receipt.transactionDateTime || receipt.transactionDate),
           warehouse_info: warehouseInfo,
           item_sku: item.itemNumber || '',
@@ -211,8 +221,8 @@ class CostcoReceiptConverter {
           full_item_image: '',
           quantity: finalQuantity,
           unit_price: this.calculateUnitPrice(item.amount, finalQuantity),
-          line_total: item.amount || 0,
-          department_id: rowIsGas ? '53' : '', // 53 is the Dept ID for Gas
+          line_total: lineTotal,
+          department_id: rowIsGas ? '53' : '', 
           tax_flag: item.taxFlag || 'N',
           isFSAEligible: this.getFSAEligibility(item.itemIdentifier),
           subtotal: receipt.subTotal || 0,
@@ -227,12 +237,20 @@ class CostcoReceiptConverter {
           surcharge_reason: '',
           final_total: receipt.total || 0,
           payment_methods: paymentMethods,
-          raw_receipt_hash: this.generateHash(JSON.stringify(receipt))
+          raw_receipt_hash: this.generateHash(JSON.stringify(receipt)),
+          
+          // FX COLUMNS
+          'FX Month': fx_month_val,
+          'FX Year': fx_year_val,
+          'FX Credit / Debit': fx_cd,
+          'FX Description': fx_desc_val,
+          'FX Show': fx_show_val,
+          'FX Total With Savings': 0 // Placeholder
         };
         processedRows[itemIndex] = { row: row, adjustments: [] };
       });
 
-      // Apply Adjustments (combine rows)
+      // Apply Adjustments (combine rows) & Finalize FX Calculations
       processedRows.forEach((processedItem) => {
         if (processedItem && processedItem.row) {
           let itemInstantSavings = 0;
@@ -252,6 +270,14 @@ class CostcoReceiptConverter {
           processedItem.row.instant_savings = itemInstantSavings;
           processedItem.row.surcharges = itemSurcharges;
           processedItem.row.surcharge_reason = surchargeReasons.join('; ');
+
+          // NEW LOGIC: Round to 2 decimals and store as Number
+          let safeLineTotal = parseFloat(processedItem.row.line_total || 0);
+          let netTotal = safeLineTotal - itemInstantSavings;
+          
+          // toFixed(2) converts to string "10.50", parseFloat converts back to number 10.5
+          processedItem.row['FX Total With Savings'] = parseFloat(netTotal.toFixed(2));
+
           rows.push(processedItem.row);
         }
       });
@@ -309,7 +335,7 @@ async function downloadFullCsv() {
         const csvContent = converter.arrayToCSV(converter.parseWarehouseReceipt(rawReceipts));
 
         var a = document.createElement('a');
-        a.download = `costco-export-WITH-GAS-${startDateStr.replace(/\//g,'-')}-to-${endDateStr.replace(/\//g,'-')}.csv`
+        a.download = `costco-export-FX-${startDateStr.replace(/\//g,'-')}-to-${endDateStr.replace(/\//g,'-')}.csv`
         a.href = window.URL.createObjectURL(new Blob([csvContent], {type: 'text/csv'}));
         a.target = '_blank';
         document.body.appendChild(a);
